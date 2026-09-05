@@ -638,9 +638,159 @@ function noteCaretClick() {
   caretClickGuard = Date.now() + 300;
 }
 
+/* ---------- reply target scoring ---------- */
+
+// Score a tweet 0-100 based on how good a reply target it is. The number
+// is displayed on every tweet as a small chip so the user can see the
+// actual score; tweets that clear GOOD_TARGET_THRESHOLD are highlighted
+// (filled purple chip, glowing generate button).
+
+const OPINION_REGEX = /\b(hot take|unpopular|change my mind|convince me|am i the only|controversial take)\b/i;
+const GOOD_TARGET_THRESHOLD = 60;
+
+function scoreReplyTarget(article) {
+  if (isOwnOrPromoted(article) || !hasTweetText(article)) return 0;
+  const text = (extractTweet(article).text || "").toLowerCase();
+  const metrics = readEngagement(article);
+  const ageHours = tweetAgeHours(article);
+  let score = 0;
+  if (ageHours !== null) {
+    if (ageHours >= 0 && ageHours < 4) score += 30;
+    else if (ageHours < 12) score += 15;
+    else if (ageHours < 24) score += 5;
+  }
+  if (text.includes("?")) score += 12;
+  if (OPINION_REGEX.test(text)) score += 15;
+  if (metrics.likes >= 1000) score += 15;
+  else if (metrics.likes >= 200) score += 10;
+  else if (metrics.likes >= 50) score += 5;
+  if (metrics.likes > 0) {
+    const ratio = metrics.replies / metrics.likes;
+    if (ratio > 0.15) score += 20;
+    else if (ratio > 0.08) score += 12;
+    else if (ratio > 0.03) score += 6;
+  }
+  if (metrics.views >= 50000) score += 10;
+  else if (metrics.views >= 10000) score += 5;
+  return Math.min(100, score);
+}
+
+function readEngagement(article) {
+  const m = { likes: 0, replies: 0, retweets: 0, views: 0 };
+  const replyBtn = article.querySelector('[data-testid="reply"]');
+  const retweetBtn = article.querySelector('[data-testid="retweet"]');
+  const likeBtn = article.querySelector('[data-testid="like"]');
+  if (replyBtn) m.replies = parseCount(replyBtn.textContent || replyBtn.getAttribute("aria-label") || "");
+  if (retweetBtn) m.retweets = parseCount(retweetBtn.textContent || retweetBtn.getAttribute("aria-label") || "");
+  if (likeBtn) m.likes = parseCount(likeBtn.textContent || likeBtn.getAttribute("aria-label") || "");
+  const viewEl = article.querySelector('a[href*="/analytics"]') || article.querySelector('[data-testid="viewCount"]');
+  if (viewEl) m.views = parseCount(viewEl.textContent || viewEl.getAttribute("aria-label") || "");
+  return m;
+}
+
+function parseCount(str) {
+  if (!str) return 0;
+  const cleaned = String(str).replace(/,/g, "");
+  const match = cleaned.match(/(\d+(?:\.\d+)?)\s*([KkMmBb])?/);
+  if (!match) return 0;
+  let num = parseFloat(match[1]);
+  const suffix = (match[2] || "").toUpperCase();
+  if (suffix === "K") num *= 1_000;
+  else if (suffix === "M") num *= 1_000_000;
+  else if (suffix === "B") num *= 1_000_000_000;
+  return Math.round(num);
+}
+
+function tweetAgeHours(article) {
+  const timeEl = article.querySelector("time");
+  if (!timeEl) return null;
+  const t = timeEl.getAttribute("datetime");
+  if (!t) return null;
+  const ms = Date.now() - new Date(t).getTime();
+  if (isNaN(ms)) return null;
+  return ms / 3_600_000;
+}
+
+function hasTweetText(article) {
+  return !!article.querySelector(SELECTORS.text);
+}
+
+function isOwnOrPromoted(article) {
+  // Own tweets and "Promoted" / "Ad" slots are never reply targets.
+  if (article.querySelector('[data-testid="socialContext"]')) return true;
+  if (article.querySelector('[data-testid="placementTracking"]')) return true;
+  return false;
+}
+
+function explainTargetScore(article) {
+  // Human-readable reasons for a high score, used in tooltips. Only the
+  // signals that actually contributed points are listed.
+  const reasons = [];
+  const ageHours = tweetAgeHours(article);
+  if (ageHours !== null && ageHours < 4) reasons.push("recent");
+  else if (ageHours !== null && ageHours < 12) reasons.push("fresh");
+  const text = (extractTweet(article).text || "").toLowerCase();
+  if (text.includes("?")) reasons.push("asks a question");
+  if (OPINION_REGEX.test(text)) reasons.push("invites takes");
+  const metrics = readEngagement(article);
+  if (metrics.likes >= 200) reasons.push("high reach");
+  if (metrics.likes > 0 && metrics.replies / metrics.likes > 0.08) reasons.push("active discussion");
+  if (metrics.views >= 10000) reasons.push("trending");
+  return reasons;
+}
+
 /* ---------- action-bar injection ---------- */
 
+// Inject the visible score chip for one tweet. Idempotent — the dataset
+// flag and the class-name lookup both prevent duplicate work. Sits in the
+// same row as the existing reply/retweet/like buttons (the action group)
+// so it doesn't overlap the tweet text or the avatar.
+function injectScoreChip(article) {
+  if (article.dataset.xraScoreChip === "1" || article.querySelector(".xra-target-score")) {
+    return;
+  }
+
+  const score = scoreReplyTarget(article);
+  article.dataset.xraTargetScore = String(score);
+
+  const chip = document.createElement("span");
+  chip.className = "xra-target-score";
+  if (score >= GOOD_TARGET_THRESHOLD) chip.classList.add("xra-target-score--good");
+  chip.textContent = String(score);
+  chip.setAttribute("data-xra-score", String(score));
+  chip.setAttribute("aria-label", `Reply target score: ${score} out of 100`);
+  chip.setAttribute(
+    "title",
+    score >= GOOD_TARGET_THRESHOLD
+      ? `Good reply target — ${explainTargetScore(article).join(", ") || "worth a reply"} (${score}/100)`
+      : `Reply target score: ${score}/100`,
+  );
+
+  // Prefer the action group (the natural row of reply/retweet/like buttons);
+  // sit to the LEFT of our generate wrapper when both exist, so the chip +
+  // wrapper are visually paired at the end of the action row. Fall back to
+  // appending to the article if the action group is missing — the chip's
+  // CSS handles absolute positioning in that case.
+  const actionGroup = article.querySelector('[role="group"]');
+  const wrapper = article.querySelector(".xra-wrap");
+  if (actionGroup) {
+    if (wrapper) {
+      actionGroup.insertBefore(chip, wrapper);
+    } else {
+      actionGroup.appendChild(chip);
+    }
+  } else {
+    article.appendChild(chip);
+  }
+
+  article.dataset.xraScoreChip = "1";
+}
+
 function injectButton(article) {
+  // Always inject the score chip first — every tweet gets a score, even if
+  // the action group is missing (so the button can't be added).
+  injectScoreChip(article);
+
   if (article.dataset.xraInjected === "1" || article.querySelector(".xra-wrap")) {
     return;
   }
@@ -649,13 +799,23 @@ function injectButton(article) {
   const actionGroup = replyButton?.closest('[role="group"]');
   if (!actionGroup || !article.contains(actionGroup)) return;
 
+  // Highlight the wrapper for high-scoring targets. The chip already
+  // reflects the score visually; this gives the generate button itself
+  // a "this one's worth a reply" cue.
+  const score = Number(article.dataset.xraTargetScore || "0");
+
   const wrapper = document.createElement("div");
   wrapper.className = "xra-wrap";
+  if (score >= GOOD_TARGET_THRESHOLD) {
+    wrapper.classList.add("xra-wrap--good-target");
+  }
 
   const button = document.createElement("button");
   button.className = "xra-btn";
   button.type = "button";
-  button.title = "Generate AI reply";
+  button.title = score >= GOOD_TARGET_THRESHOLD
+    ? `Good reply target (${score}/100) — click to draft a reply`
+    : "Generate AI reply";
   button.setAttribute("aria-label", "Generate AI reply");
   button.innerHTML = SPARKLE;
 
