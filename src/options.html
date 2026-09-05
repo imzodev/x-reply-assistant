@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>X Reply Assistant</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      width: 380px;
+      max-width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 18px;
+      overflow-x: hidden;
+      color: #0f1419;
+      background: #fff;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { color: #e7e9ea; background: #16181c; }
+    }
+
+    h1 {
+      font-size: 17px;
+      margin: 0 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .intro {
+      margin: -4px 0 12px;
+      font-size: 12px;
+      opacity: 0.72;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 12px 0 4px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 9px;
+      border: 1px solid #8888;
+      border-radius: 7px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 2px solid #7c3aed66;
+      border-color: #7c3aed;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 58px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .row > div {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .hint {
+      font-size: 12px;
+      opacity: 0.68;
+      margin-top: 3px;
+    }
+
+    .privacy-note {
+      margin: 12px 0 0;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: #7c3aed14;
+      font-size: 12px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    button {
+      padding: 8px 14px;
+      border-radius: 9999px;
+      border: none;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+      background: #7c3aed;
+      color: #fff;
+    }
+
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: 0.65; cursor: wait; }
+
+    button.secondary {
+      background: transparent;
+      color: inherit;
+      border: 1px solid #8888;
+    }
+
+    #status {
+      font-size: 12px;
+      margin-top: 8px;
+      min-height: 16px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    details { margin-top: 14px; }
+    summary { cursor: pointer; font-weight: 600; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>✨ X Reply Assistant</h1>
+  <p class="intro">Draft a reply with AI, then review and post it yourself.</p>
+
+  <label for="provider">Provider</label>
+  <select id="provider">
+    <option value="openai">OpenAI</option>
+    <option value="deepseek">DeepSeek</option>
+    <option value="minimax">MiniMax</option>
+  </select>
+
+  <label for="apiKey">API key</label>
+  <input id="apiKey" type="password" autocomplete="off" spellcheck="false" />
+  <div class="hint">Stored in chrome.storage.local on this browser. It is sent only to your selected provider.</div>
+
+  <label for="tone">Default reply tone</label>
+  <select id="tone"></select>
+
+  <div id="customToneWrap" class="hidden">
+    <label for="customTone">Custom tone instructions</label>
+    <textarea id="customTone" maxlength="1000" placeholder="e.g. Reply like a grumpy medieval knight."></textarea>
+  </div>
+
+  <label for="persona">About you (optional)</label>
+  <textarea id="persona" maxlength="1500" placeholder="e.g. Indie game dev, sarcastic but kind, loves pixel art."></textarea>
+
+  <div class="row">
+    <div>
+      <label for="language">Language</label>
+      <input id="language" maxlength="80" placeholder="auto" />
+      <div class="hint">“auto” matches the post.</div>
+    </div>
+    <div>
+      <label for="maxChars">Max characters</label>
+      <input id="maxChars" type="number" min="40" max="280" step="1" />
+    </div>
+  </div>
+
+  <details>
+    <summary>Advanced</summary>
+    <label for="model">Model</label>
+    <input id="model" spellcheck="false" />
+    <div class="hint" id="modelHint"></div>
+
+    <label for="baseURL">Base URL</label>
+    <input id="baseURL" type="url" spellcheck="false" />
+    <div class="hint" id="baseHint"></div>
+
+    <label for="temperature">Temperature</label>
+    <input id="temperature" type="number" min="0" max="2" step="0.1" />
+  </details>
+
+  <div class="privacy-note">The extension only drafts text. It never clicks X’s Reply button.</div>
+
+  <div class="actions">
+    <button id="save" type="button">Save</button>
+    <button id="test" class="secondary" type="button">Test connection</button>
+  </div>
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

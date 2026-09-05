@@ -1,0 +1,146 @@
+.xra-wrap {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.xra-btn,
+.xra-caret {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: rgb(113, 118, 123);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  padding: 0;
+  border-radius: 9999px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.xra-btn {
+  width: 34px;
+  height: 34px;
+}
+
+.xra-caret {
+  width: 18px;
+  height: 34px;
+  margin-left: -6px;
+  font-size: 12px;
+}
+
+.xra-btn:hover,
+.xra-caret:hover,
+.xra-btn:focus-visible,
+.xra-caret:focus-visible {
+  color: rgb(124, 58, 237);
+  background-color: rgba(124, 58, 237, 0.12);
+  outline: none;
+}
+
+.xra-btn:disabled {
+  opacity: 0.75;
+}
+
+.xra-busy {
+  color: rgb(124, 58, 237);
+  cursor: progress;
+}
+
+.xra-spin {
+  animation: xra-rotate 0.8s linear infinite;
+}
+
+@keyframes xra-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.xra-menu {
+  position: fixed;
+  z-index: 2147483647;
+  width: max-content;
+  min-width: 170px;
+  max-width: 240px;
+  background: #fff;
+  color: #0f1419;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(101, 119, 134, 0.25), 0 0 4px rgba(101, 119, 134, 0.2);
+  padding: 6px 0;
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  contain: layout style;
+  /* Defensive: prevent X's global rules from overriding our layout. */
+  box-sizing: border-box;
+  inset: auto;
+  margin: 0;
+  border: 0;
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .xra-menu {
+    background: #16181c;
+    color: #e7e9ea;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+  }
+}
+
+.xra-menu-item {
+  appearance: none;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 9px 16px;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.xra-menu-item:hover,
+.xra-menu-item:focus-visible {
+  background: rgba(124, 58, 237, 0.12);
+  outline: none;
+}
+
+.xra-menu-default {
+  font-weight: 700;
+}
+
+.xra-menu-default::after {
+  content: " • default";
+  font-weight: 400;
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.xra-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  background: rgb(124, 58, 237);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font: 14px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  max-width: 90vw;
+  text-align: center;
+}
+
+.xra-toast-error {
+  background: #d92d20;
+}

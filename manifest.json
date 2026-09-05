@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "X Reply Assistant",
+  "description": "Generate draft replies to posts on X with OpenAI, DeepSeek, or MiniMax.",
+  "version": "1.0.0",
+  "minimum_chrome_version": "110",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://api.openai.com/*",
+    "https://api.deepseek.com/*",
+    "https://api.minimax.io/*",
+    "https://api.minimaxi.com/*"
+  ],
+  "optional_host_permissions": ["https://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "X Reply Assistant",
+    "default_popup": "options.html"
+  },
+  "options_page": "options.html"
+}

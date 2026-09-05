@@ -1,0 +1,19 @@
+{
+  "name": "x-reply-assistant",
+  "version": "1.0.0",
+  "description": "Draft AI-assisted replies on X using OpenAI-compatible providers.",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js --watch"
+  },
+  "dependencies": {
+    "openai": "^5.12.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
