@@ -134,6 +134,60 @@
     details { margin-top: 14px; }
     summary { cursor: pointer; font-weight: 600; }
     .hidden { display: none; }
+
+    /* Reply target scoring reference. Hidden inside a <details> block by
+       default so it doesn't crowd the main settings; expanding it shows
+       the full point table that drives the chip color and the
+       "good target" highlight. */
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      line-height: 1.4;
+      margin: 8px 0 4px;
+      table-layout: fixed;
+    }
+    .score-table col:nth-child(1) { width: 96px; }
+    .score-table col:nth-child(2) { width: auto; }
+    .score-table col:nth-child(3) { width: 44px; }
+    .score-table th,
+    .score-table td {
+      padding: 4px 5px;
+      text-align: left;
+      border-bottom: 1px solid #8884;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+    .score-table th {
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #8888;
+      opacity: 0.7;
+    }
+    .score-table td.num,
+    .score-table th.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: #7c3aed;
+    }
+    .score-table tfoot td {
+      border-bottom: none;
+      border-top: 1px solid #8888;
+      padding-top: 6px;
+      background: #7c3aed10;
+    }
+    .score-table tfoot td.num {
+      font-size: 12px;
+      font-weight: 700;
+    }
+    @media (prefers-color-scheme: dark) {
+      .score-table td.num { color: #a78bfa; }
+      .score-table tfoot td { background: #7c3aed1f; }
+      .score-table tfoot td.num { color: #c4b5fd; }
+    }
   </style>
 </head>
 <body>
@@ -186,6 +240,49 @@
 
     <label for="temperature">Temperature</label>
     <input id="temperature" type="number" min="0" max="2" step="0.1" />
+  </details>
+
+  <details>
+    <summary>How reply target scores are calculated</summary>
+    <p class="hint" style="margin-top:8px">
+      Each tweet on the timeline shows a 0–100 score. The number is the
+      sum of the points below. A score of <b>60 or higher</b> is
+      highlighted as a “good target” (filled chip, purple generate button).
+    </p>
+    <table class="score-table" aria-label="Reply target scoring point table">
+      <colgroup>
+        <col><col><col class="num">
+      </colgroup>
+      <thead>
+        <tr><th>Signal</th><th>Condition</th><th class="num">+Pts</th></tr>
+      </thead>
+      <tbody>
+        <tr><td rowspan="3">Recency</td>     <td>&lt; 4 h old</td>       <td class="num">30</td></tr>
+        <tr>                                  <td>&lt; 12 h old</td>      <td class="num">15</td></tr>
+        <tr>                                  <td>&lt; 24 h old</td>      <td class="num">5</td></tr>
+        <tr><td rowspan="2">Reply-worthy</td><td>Contains a ?</td>       <td class="num">12</td></tr>
+        <tr>                                  <td>Opinion-bait phrase*</td><td class="num">15</td></tr>
+        <tr><td rowspan="3">Likes</td>      <td>≥ 1 000</td>            <td class="num">15</td></tr>
+        <tr>                                  <td>≥ 200</td>              <td class="num">10</td></tr>
+        <tr>                                  <td>≥ 50</td>               <td class="num">5</td></tr>
+        <tr><td rowspan="3">Replies / likes</td><td>ratio &gt; 0.15</td> <td class="num">20</td></tr>
+        <tr>                                  <td>ratio &gt; 0.08</td>    <td class="num">12</td></tr>
+        <tr>                                  <td>ratio &gt; 0.03</td>    <td class="num">6</td></tr>
+        <tr><td rowspan="2">Views</td>      <td>≥ 50 000</td>           <td class="num">10</td></tr>
+        <tr>                                  <td>≥ 10 000</td>           <td class="num">5</td></tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2"><b>Highlighted as “good target”</b></td>
+          <td class="num"><b>≥ 60</b></td>
+        </tr>
+      </tfoot>
+    </table>
+    <p class="hint" style="margin-top:4px">
+      * Opinion-bait phrases: “hot take”, “unpopular”, “change my mind”,
+      “convince me”, “am i the only”, “controversial take”.<br>
+      Your own posts and Promoted/Ad slots are excluded (no score, no chip).
+    </p>
   </details>
 
   <div class="privacy-note">The extension only drafts text. It never clicks X’s Reply button.</div>
