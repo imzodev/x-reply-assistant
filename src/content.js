@@ -18,6 +18,10 @@ const SPINNER = `<svg viewBox="0 0 24 24" width="18" height="18" class="xra-spin
   <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" fill="none" stroke-dasharray="40 20" />
 </svg>`;
 
+const REFRESH = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+  <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+</svg>`;
+
 function toast(message, isError = true) {
   document.querySelectorAll(".xra-toast").forEach((element) => element.remove());
   const element = document.createElement("div");
@@ -298,6 +302,7 @@ async function handleGenerate(article, button, toneOverride) {
     await sleep(120);
     const editor = findCurrentEditor(originalEditor);
     await insertIntoEditor(editor, response.text);
+    injectRegenerateButton(editor, article, toneOverride);
     toast("Reply drafted ✨ — review it, then press Reply.", false);
   } catch (error) {
     toast(error?.message || String(error));
@@ -306,6 +311,165 @@ async function handleGenerate(article, button, toneOverride) {
       button.dataset.busy = "0";
       button.disabled = false;
       button.innerHTML = SPARKLE;
+      button.classList.remove("xra-busy");
+    }
+  }
+}
+
+/* ---------- regenerate button (injected into the reply dialog) ---------- */
+
+// X renders the reply dialog itself, so the regenerate control has to live
+// inside X's DOM. We anchor it directly to the left of the Reply (submit)
+// button, inside a row-flex wrapper that we control. That wrapper is what
+// guarantees horizontal placement regardless of whether X's action cluster
+// is row- or column-flexed — on column-flex layouts the regen button would
+// otherwise land above the Reply button.
+//
+// Re-injecting is idempotent: any prior wrapper is unwrapped (the Reply
+// button is moved back to its original parent) before a fresh one is
+// created. The button is only ever added on a successful `insertIntoEditor`
+// — failures never produce one.
+
+function injectRegenerateButton(editor, article, toneOverride) {
+  if (!editor) return;
+
+  // Walk up from the editor (which is always inside the composer) and find
+  // the composer submit button by its visible text. Searching the whole
+  // dialog by testid can match buttons inside the original tweet or a
+  // quoted tweet rendered at the top of the dialog — those would put the
+  // regen button in the wrong place.
+  const replyButton = findComposerReplyButton(editor);
+  if (!replyButton) return;
+
+  // If a previous injection wrapped the Reply button, put it back where it
+  // was before we re-wrap. Idempotent.
+  unwrapReplyButton(replyButton);
+
+  const host = replyButton.parentElement;
+  if (!host) return;
+
+  const button = document.createElement("button");
+  button.className = "xra-regen";
+  button.type = "button";
+  button.setAttribute("aria-label", "Regenerate reply");
+  button.title = "Regenerate reply";
+  button.innerHTML = REFRESH;
+
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    regenerateReply({ article, editor, button, toneOverride });
+  });
+
+  // Wrap the Reply button in a row-flex container along with the regen
+  // button. This guarantees the regen button sits horizontally to the left
+  // of the Reply button no matter how X has laid out the cluster above us.
+  const wrapper = document.createElement("div");
+  wrapper.className = "xra-regen-wrap";
+
+  host.insertBefore(wrapper, replyButton);
+  wrapper.appendChild(button);
+  wrapper.appendChild(replyButton);
+}
+
+// Move the Reply button back to its original parent if it was previously
+// wrapped. Idempotent — safe to call when no wrap exists.
+function unwrapReplyButton(replyButton) {
+  if (!replyButton) return;
+  const wrapper = replyButton.parentElement;
+  if (!wrapper || !wrapper.classList.contains("xra-regen-wrap")) return;
+  const host = wrapper.parentElement;
+  if (!host) return;
+  host.insertBefore(replyButton, wrapper);
+  wrapper.remove();
+}
+
+// Find the composer submit button inside the reply dialog. The Reply button
+// lives in the composer's *footer*, which is a sibling of the editor's
+// subtree — so we can't walk up from the editor to find it. Instead we
+// search the whole dialog, but with two layers of filtering to make sure
+// we grab the actual submit button and not something else (e.g., a button
+// inside the original tweet being replied to, or an "unverified reply"
+// button on a quoted tweet).
+//
+// Layer 1: known testids inside the dialog. These are stable enough across
+// X layouts to use as the primary signal.
+// Layer 2: text matching ("reply" / "tweet" / "post" / "send") as a sanity
+// check on whatever the testid query returns.
+// Layer 3: scan all buttons in the dialog for a matching text label.
+function findComposerReplyButton(editor) {
+  const dialog = editor.closest(SELECTORS.dialog);
+  if (!dialog) return null;
+
+  const isSubmitLabel = (btn) => {
+    if (!btn) return false;
+    if (btn.classList.contains("xra-regen")) return false;
+    if (btn.closest(".xra-regen-wrap")) return false;
+    const text = (btn.textContent || "").trim().toLowerCase();
+    return text === "reply" || text === "tweet" || text === "post" || text === "send";
+  };
+
+  // Layer 1+2: testid candidates whose text is a submit label.
+  const testidCandidates = [
+    dialog.querySelector('[data-testid="tweetButtonInlineCompose"]'),
+    dialog.querySelector('[data-testid="tweetButton"]'),
+  ];
+  for (const btn of testidCandidates) {
+    if (isSubmitLabel(btn)) return btn;
+  }
+
+  // Layer 3: scan all buttons in the dialog.
+  const allButtons = dialog.querySelectorAll('button, [role="button"]');
+  for (const btn of allButtons) {
+    if (isSubmitLabel(btn)) return btn;
+  }
+
+  // Last resort: take the first testid candidate even if its text doesn't
+  // match (X sometimes ships icon-only submit buttons with no text).
+  for (const btn of testidCandidates) {
+    if (btn && !btn.classList.contains("xra-regen")) return btn;
+  }
+
+  return null;
+}
+
+async function regenerateReply({ article, editor, button, toneOverride }) {
+  if (button.dataset.busy === "1") return;
+
+  const tweet = extractTweet(article);
+  if (!tweet.text && !tweet.quoted && !tweet.imageAlts.length) {
+    toast("Couldn't read this post's content.");
+    return;
+  }
+
+  button.dataset.busy = "1";
+  button.disabled = true;
+  const originalHtml = button.innerHTML;
+  button.innerHTML = SPINNER;
+  button.classList.add("xra-busy");
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "GENERATE_REPLY",
+      tweet,
+      tone: toneOverride || null,
+    });
+    if (!response?.ok) {
+      throw new Error(response?.error || "Reply regeneration failed.");
+    }
+
+    if (!editor.isConnected || !isVisible(editor)) {
+      throw new Error("The reply box was closed before regeneration finished.");
+    }
+
+    await insertIntoEditor(editor, response.text);
+  } catch (error) {
+    toast(error?.message || String(error));
+  } finally {
+    if (button.isConnected) {
+      button.dataset.busy = "0";
+      button.disabled = false;
+      button.innerHTML = originalHtml;
       button.classList.remove("xra-busy");
     }
   }

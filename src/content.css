@@ -144,3 +144,58 @@
 .xra-toast-error {
   background: #d92d20;
 }
+
+.xra-regen-wrap {
+  /* Row-flex container that holds the regen button and the Reply button
+     together. Guarantees horizontal placement regardless of whether the
+     dialog's action cluster is row- or column-flexed. */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xra-regen {
+  /* Icon-only button injected into the dialog's right action cluster, next
+     to the character counter and Reply button. Sized to match X's other
+     toolbar icons so it doesn't overlap its neighbors. No absolute
+     positioning — it sits in X's flex flow. The wrapper .xra-regen-wrap
+     handles horizontal spacing, so this button itself has no margin. */
+  position: relative;
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(83, 100, 113, 0.4);
+  color: rgb(83, 100, 113);
+  border-radius: 9999px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  /* Defensive: prevent X's global rules from restyling the injected button. */
+  box-sizing: border-box;
+  animation: none !important;
+}
+
+.xra-regen:hover:not(:disabled),
+.xra-regen:focus-visible:not(:disabled) {
+  background: rgba(29, 155, 240, 0.1);
+  border-color: rgba(29, 155, 240, 0.5);
+  color: rgb(29, 155, 240);
+  outline: none;
+}
+
+.xra-regen:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.xra-regen > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
