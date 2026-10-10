@@ -1,6 +1,8 @@
 # X Reply Assistant
 
-A Manifest V3 Chrome extension that adds a ✨ button to posts on X. It generates a reply draft with an OpenAI-compatible chat API and places the draft in X's reply composer. It never submits the reply.
+A Manifest V3 Chrome extension that adds a ✨ button to posts on X and LinkedIn. It generates a reply (or LinkedIn comment) draft with an OpenAI-compatible chat API and places it in the site's reply or comment box. It never submits the reply.
+
+LinkedIn drafts use their own prompt (specific, no empty praise, answers the post's closing question, includes the keyword on "comment KEYWORD" posts) and their own max length setting.
 
 ## Requirements
 
@@ -48,4 +50,4 @@ The Advanced section allows a custom model and HTTPS base URL for another OpenAI
 
 ## Limitations
 
-X changes its DOM periodically, so selectors may need maintenance. The extension only drafts text; it does not automatically post, like, follow, or otherwise interact with X on your behalf.
+X and LinkedIn change their DOM periodically, so selectors may need maintenance (LinkedIn's live in the `SELECTORS` object in `src/content-linkedin.js`). The extension only drafts text; it does not automatically post, like, follow, or otherwise interact with either site on your behalf.

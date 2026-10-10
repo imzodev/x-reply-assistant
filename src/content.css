@@ -271,3 +271,23 @@ article[data-testid="tweet"] > .xra-target-score {
   background-color: rgb(124, 58, 237);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.28);
 }
+
+/* ---------- LinkedIn ---------- */
+
+/* LinkedIn's class names are hashed, so we style our own wrapper and
+   inherit the action bar's text color (follows LinkedIn's light/dark theme). */
+.xra-wrap--linkedin {
+  align-self: center;
+  margin-left: auto;
+}
+
+.xra-wrap--linkedin .xra-btn,
+.xra-wrap--linkedin .xra-caret {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.xra-wrap--linkedin .xra-btn:hover,
+.xra-wrap--linkedin .xra-caret:hover {
+  opacity: 1;
+}

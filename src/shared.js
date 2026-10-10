@@ -85,6 +85,7 @@ export const DEFAULT_SETTINGS = {
   persona: "",
   language: "auto",
   maxChars: 240,
+  linkedinMaxChars: 400,
   temperature: 0.9,
 };
 

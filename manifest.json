@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "X Reply Assistant",
-  "description": "Generate draft replies to posts on X with OpenAI, DeepSeek, or MiniMax.",
+  "description": "Generate draft replies to posts on X and comments on LinkedIn with OpenAI, DeepSeek, or MiniMax.",
   "version": "1.0.0",
   "minimum_chrome_version": "110",
   "permissions": ["storage"],
@@ -19,6 +19,12 @@
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.linkedin.com/*"],
+      "js": ["content-linkedin.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     }

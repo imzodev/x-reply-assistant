@@ -31,6 +31,7 @@ const options = {
   entryPoints: {
     background: "src/background.js",
     content: "src/content.js",
+    "content-linkedin": "src/content-linkedin.js",
     options: "src/options.js",
   },
   bundle: true,

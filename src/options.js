@@ -50,6 +50,7 @@ function render() {
   $("persona").value = settings.persona || "";
   $("language").value = settings.language || "auto";
   $("maxChars").value = settings.maxChars;
+  $("linkedinMaxChars").value = settings.linkedinMaxChars;
   $("temperature").value = settings.temperature;
   renderProviderFields();
 }
@@ -62,6 +63,7 @@ function collectForm() {
   settings.persona = $("persona").value.trim();
   settings.language = $("language").value.trim() || "auto";
   settings.maxChars = Math.min(280, Math.max(40, Math.round(Number($("maxChars").value) || 240)));
+  settings.linkedinMaxChars = Math.min(1250, Math.max(40, Math.round(Number($("linkedinMaxChars").value) || 400)));
 
   const temperature = Number($("temperature").value);
   settings.temperature = Number.isFinite(temperature)
