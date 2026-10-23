@@ -174,9 +174,19 @@ function extractPost(post) {
     .map((image) => image.alt?.trim())
     .filter((alt) => alt && alt.length > 15 && !/^(image|imagen|no alternative text)/i.test(alt));
 
+  // Post media only: skip avatars, logos, and small thumbnails (comments,
+  // reactions), which all come from the same CDN.
+  const imageUrls = [...new Set(
+    [...post.querySelectorAll('img[src^="https://media.licdn.com/"]')]
+      .filter((image) => !image.closest(SELECTORS.profileLink))
+      .filter((image) => !/profile-displayphoto|profile-framedphoto|company-logo/.test(image.src))
+      .filter((image) => image.getBoundingClientRect().width >= 200)
+      .map((image) => image.src),
+  )].slice(0, 4);
+
   const keyword = text.match(KEYWORD_REGEX)?.[1] || "";
 
-  return { text, quoted, name, handle, imageAlts, keyword };
+  return { text, quoted, name, handle, imageAlts, imageUrls, keyword };
 }
 
 /* ---------- comment box handling ---------- */
@@ -260,7 +270,7 @@ function requestDraft(data, toneOverride) {
 }
 
 function hasContent(data) {
-  return Boolean(data.text || data.quoted || data.imageAlts.length);
+  return Boolean(data.text || data.quoted || data.imageAlts.length || data.imageUrls.length);
 }
 
 async function handleGenerate(post, button, toneOverride) {

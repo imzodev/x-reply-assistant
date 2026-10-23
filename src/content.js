@@ -27,6 +27,19 @@ initToneMenu();
 
 /* ---------- post extraction ---------- */
 
+// Timeline photos are served at a small size; ask for the "medium" variant
+// so text inside screenshots stays legible for the vision model.
+function photoUrl(src) {
+  try {
+    const url = new URL(src);
+    if (url.hostname !== "pbs.twimg.com" || !url.pathname.startsWith("/media/")) return "";
+    url.searchParams.set("name", "medium");
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
 function extractTweet(article) {
   const textElements = [...article.querySelectorAll(SELECTORS.text)];
   const text = textElements[0]?.innerText?.trim() || "";
@@ -47,11 +60,13 @@ function extractTweet(article) {
     name = spans.find((value) => value !== "·" && !value.startsWith("@")) || "";
   }
 
-  const imageAlts = [...article.querySelectorAll(SELECTORS.photo)]
+  const photos = [...article.querySelectorAll(SELECTORS.photo)];
+  const imageAlts = photos
     .map((image) => image.alt?.trim())
     .filter((alt) => alt && alt.toLowerCase() !== "image");
+  const imageUrls = [...new Set(photos.map((image) => photoUrl(image.src)).filter(Boolean))].slice(0, 4);
 
-  return { text, quoted, name, handle, imageAlts };
+  return { text, quoted, name, handle, imageAlts, imageUrls };
 }
 
 /* ---------- composer handling ---------- */
@@ -209,7 +224,7 @@ async function handleGenerate(article, button, toneOverride) {
   if (button.dataset.busy === "1") return;
 
   const tweet = extractTweet(article);
-  if (!tweet.text && !tweet.quoted && !tweet.imageAlts.length) {
+  if (!tweet.text && !tweet.quoted && !tweet.imageAlts.length && !tweet.imageUrls.length) {
     toast("Couldn't read this post's content.");
     return;
   }
@@ -320,7 +335,7 @@ async function regenerateReply({ article, editor, button, toneOverride }) {
   if (button.dataset.busy === "1") return;
 
   const tweet = extractTweet(article);
-  if (!tweet.text && !tweet.quoted && !tweet.imageAlts.length) {
+  if (!tweet.text && !tweet.quoted && !tweet.imageAlts.length && !tweet.imageUrls.length) {
     toast("Couldn't read this post's content.");
     return;
   }

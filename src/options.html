@@ -67,6 +67,17 @@
       border-color: #7c3aed;
     }
 
+    label.check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label.check input {
+      width: auto;
+      margin: 0;
+    }
+
     textarea {
       resize: vertical;
       min-height: 58px;
@@ -231,6 +242,12 @@
       <input id="linkedinMaxChars" type="number" min="40" max="1250" step="1" />
     </div>
   </div>
+
+  <label class="check" for="analyzeImages">
+    <input id="analyzeImages" type="checkbox" />
+    Analyze post images
+  </label>
+  <div class="hint">OpenAI models see the images directly. With DeepSeek or MiniMax, images are described by MiniMax's image understanding (Coding/Token Plan key), so a MiniMax API key must be saved.</div>
 
   <details>
     <summary>Advanced</summary>

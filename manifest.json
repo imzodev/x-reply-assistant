@@ -9,7 +9,9 @@
     "https://api.openai.com/*",
     "https://api.deepseek.com/*",
     "https://api.minimax.io/*",
-    "https://api.minimaxi.com/*"
+    "https://api.minimaxi.com/*",
+    "https://pbs.twimg.com/*",
+    "https://media.licdn.com/*"
   ],
   "optional_host_permissions": ["https://*/*"],
   "background": {

@@ -48,6 +48,15 @@ On X, open a post's action bar and click ✨ to draft a reply. Use the small arr
 
 The Advanced section allows a custom model and HTTPS base URL for another OpenAI-compatible endpoint. Chrome may ask for permission for a custom endpoint. The API key is stored in `chrome.storage.local` and is sent to the configured provider by the extension service worker.
 
+## Images
+
+Most posts only make sense with their images, so the extension reads up to four images per post (toggle **Analyze post images** in the settings):
+
+- **OpenAI**: the images are attached to the request directly (the default `gpt-4o-mini` supports vision). If a custom model rejects images, the reply is retried as text only.
+- **DeepSeek / MiniMax**: the chat models are text-only, so each image is first described by MiniMax's image understanding endpoint (`/v1/coding_plan/vlm`, included in the MiniMax Coding/Token Plan) and the descriptions are added to the prompt. This needs a MiniMax API key saved in the settings, even when DeepSeek is the selected provider.
+
+If image analysis fails, the draft is still generated from the post text and image alt text.
+
 ## Limitations
 
 X and LinkedIn change their DOM periodically, so selectors may need maintenance (LinkedIn's live in the `SELECTORS` object in `src/content-linkedin.js`). The extension only drafts text; it does not automatically post, like, follow, or otherwise interact with either site on your behalf.
