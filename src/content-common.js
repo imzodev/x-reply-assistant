@@ -69,10 +69,8 @@ export function editorTextEquals(editor, expected) {
   return actual === expected.trim();
 }
 
-// Replace the editor contents with a single synthetic paste. Used as a
-// fallback when the editor ignored the primary insertion path.
-export async function pasteIntoEditor(editor, text) {
-  selectEditorContents(editor);
+// Insert text at the editor's selection with a synthetic paste event.
+export function pasteText(editor, text) {
   const transfer = new DataTransfer();
   transfer.setData("text/plain", text);
   editor.dispatchEvent(
@@ -82,6 +80,13 @@ export async function pasteIntoEditor(editor, text) {
       cancelable: true,
     }),
   );
+}
+
+// Replace the editor contents with a single synthetic paste. Used as a
+// fallback when the editor ignored the primary insertion path.
+export async function pasteIntoEditor(editor, text) {
+  selectEditorContents(editor);
+  pasteText(editor, text);
 
   await nextFrame();
   await nextFrame();

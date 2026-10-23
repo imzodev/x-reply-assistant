@@ -466,6 +466,7 @@ async function getPublicSettings() {
   return {
     tone: Object.hasOwn(TONES, settings.tone) ? settings.tone : "general",
     hasCustomTone: Boolean(String(settings.customTone || "").trim()),
+    autoDraft: settings.autoDraft !== false,
   };
 }
 

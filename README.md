@@ -40,6 +40,8 @@ The JavaScript bundle is watched. Reload the unpacked extension in `chrome://ext
 
 On X, open a post's action bar and click ✨ to draft a reply. Use the small arrow to choose a one-off tone. Review and edit the draft, then click X's own **Reply** button.
 
+Posts with a purple score chip (60+) that stay on screen for about a second are drafted in the background. Clicking X's own Reply button (or ✨) on one of them types the ready draft straight into the reply box, with ↻ next to Reply to regenerate. Turn this off with **Pre-draft replies for good targets while scrolling** in the settings.
+
 ## Providers
 
 - OpenAI: `https://api.openai.com/v1`, default model `gpt-4o-mini`

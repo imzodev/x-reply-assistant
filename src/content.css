@@ -272,6 +272,22 @@ article[data-testid="tweet"] > .xra-target-score {
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.28);
 }
 
+/* Dot on ✨ when a background draft is ready for this tweet. */
+.xra-wrap--draft-ready .xra-btn {
+  position: relative;
+}
+
+.xra-wrap--draft-ready .xra-btn::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(0, 186, 124);
+}
+
 /* ---------- LinkedIn ---------- */
 
 /* LinkedIn's class names are hashed, so we style our own wrapper and

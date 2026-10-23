@@ -53,6 +53,7 @@ function render() {
   $("linkedinMaxChars").value = settings.linkedinMaxChars;
   $("temperature").value = settings.temperature;
   $("analyzeImages").checked = settings.analyzeImages !== false;
+  $("autoDraft").checked = settings.autoDraft !== false;
   renderProviderFields();
 }
 
@@ -67,6 +68,7 @@ function collectForm() {
   settings.linkedinMaxChars = Math.min(1250, Math.max(40, Math.round(Number($("linkedinMaxChars").value) || 400)));
 
   settings.analyzeImages = $("analyzeImages").checked;
+  settings.autoDraft = $("autoDraft").checked;
 
   const temperature = Number($("temperature").value);
   settings.temperature = Number.isFinite(temperature)

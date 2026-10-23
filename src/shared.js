@@ -88,6 +88,7 @@ export const DEFAULT_SETTINGS = {
   linkedinMaxChars: 400,
   temperature: 0.9,
   analyzeImages: true,
+  autoDraft: true,
 };
 
 function mergeRecord(defaultValue, storedValue) {

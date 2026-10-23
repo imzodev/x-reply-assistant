@@ -249,6 +249,12 @@
   </label>
   <div class="hint">OpenAI models see the images directly. With DeepSeek or MiniMax, images are described by MiniMax's image understanding (Coding/Token Plan key), so a MiniMax API key must be saved.</div>
 
+  <label class="check" for="autoDraft">
+    <input id="autoDraft" type="checkbox" />
+    Pre-draft replies for good targets while scrolling
+  </label>
+  <div class="hint">On X, posts scoring 60+ that stay on screen for a moment get a draft in the background, so it's ready when you click Reply. Uses one API call per pre-drafted post.</div>
+
   <details>
     <summary>Advanced</summary>
     <label for="model">Model</label>
