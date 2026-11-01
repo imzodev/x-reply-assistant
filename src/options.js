@@ -1,4 +1,13 @@
-import { PROVIDERS, TONES, loadSettings, saveSettings } from "./shared.js";
+import {
+  EXAMPLES_IN_PROMPT,
+  MAX_EXAMPLES,
+  PROVIDERS,
+  TONES,
+  loadExamples,
+  loadSettings,
+  saveExamples,
+  saveSettings,
+} from "./shared.js";
 
 const $ = (id) => document.getElementById(id);
 let settings;
@@ -54,6 +63,7 @@ function render() {
   $("temperature").value = settings.temperature;
   $("analyzeImages").checked = settings.analyzeImages !== false;
   $("autoDraft").checked = settings.autoDraft !== false;
+  $("styleNotes").value = settings.styleNotes || "";
   renderProviderFields();
 }
 
@@ -69,6 +79,7 @@ function collectForm() {
 
   settings.analyzeImages = $("analyzeImages").checked;
   settings.autoDraft = $("autoDraft").checked;
+  settings.styleNotes = $("styleNotes").value.trim();
 
   const temperature = Number($("temperature").value);
   settings.temperature = Number.isFinite(temperature)
@@ -137,9 +148,184 @@ async function test() {
   }
 }
 
+/* ---------- train your voice ---------- */
+
+let examples = [];
+let editingId = null;
+// The AI draft currently in the reply box, saved alongside the edit.
+let currentSample = "";
+
+function setTrainStatus(message, isError = false) {
+  const status = $("trainStatus");
+  status.textContent = message;
+  status.style.color = isError ? "#d92d20" : "#16a34a";
+}
+
+function setTrainBusy(isBusy) {
+  $("trainGenerate").disabled = isBusy;
+  $("trainSave").disabled = isBusy;
+}
+
+function resetTrainForm() {
+  editingId = null;
+  currentSample = "";
+  $("trainPost").value = "";
+  $("trainReply").value = "";
+  $("trainSave").textContent = "Save example";
+  $("trainCancel").classList.add("hidden");
+}
+
+function renderExamples() {
+  const list = $("exampleList");
+  list.replaceChildren();
+
+  for (const example of examples) {
+    const item = document.createElement("li");
+    item.className = `example${example.id === editingId ? " editing" : ""}`;
+
+    const post = document.createElement("div");
+    post.className = "example-post";
+    post.textContent = example.post;
+    post.title = example.post;
+
+    const reply = document.createElement("div");
+    reply.className = "example-reply";
+    reply.textContent = example.reply;
+
+    const meta = document.createElement("div");
+    meta.className = "example-meta";
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = example.platform === "linkedin" ? "LinkedIn" : "X";
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "secondary";
+    edit.textContent = "Edit";
+    edit.addEventListener("click", () => editExample(example.id));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "secondary";
+    remove.textContent = "Delete";
+    remove.addEventListener("click", () => deleteExample(example.id));
+    meta.append(badge, edit, remove);
+
+    item.append(post, reply, meta);
+    list.appendChild(item);
+  }
+
+  const count = examples.length;
+  $("exampleCount").textContent = count
+    ? `${count} example${count === 1 ? "" : "s"} saved. The ${EXAMPLES_IN_PROMPT} most recent per platform are used.`
+    : "";
+}
+
+async function generateSample() {
+  const post = $("trainPost").value.trim();
+  if (!post) {
+    setTrainStatus("Paste a post first.", true);
+    return;
+  }
+
+  setTrainBusy(true);
+  setTrainStatus("Generating…");
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "GENERATE_REPLY",
+      platform: $("trainPlatform").value,
+      tweet: { text: post, quoted: "", name: "", handle: "", imageAlts: [], imageUrls: [] },
+      tone: null,
+    });
+    if (!response?.ok) throw new Error(response?.error || "Reply generation failed.");
+    currentSample = response.text;
+    $("trainReply").value = response.text;
+    $("trainReply").focus();
+    setTrainStatus("Edit the reply until it sounds like you, then save.");
+  } catch (error) {
+    setTrainStatus(error?.message || String(error), true);
+  } finally {
+    setTrainBusy(false);
+  }
+}
+
+async function saveExample() {
+  const post = $("trainPost").value.trim();
+  const reply = $("trainReply").value.trim();
+  if (!post || !reply) {
+    setTrainStatus("Both the post and your reply are needed.", true);
+    return;
+  }
+
+  const fields = { platform: $("trainPlatform").value, post, reply, sample: currentSample };
+  const existing = examples.find((example) => example.id === editingId);
+  if (existing) {
+    Object.assign(existing, fields);
+  } else {
+    examples.unshift({ id: crypto.randomUUID(), createdAt: Date.now(), ...fields });
+  }
+
+  setTrainBusy(true);
+  try {
+    examples = examples.slice(0, MAX_EXAMPLES);
+    await saveExamples(examples);
+    resetTrainForm();
+    renderExamples();
+    refreshStyle(existing ? "Example updated ✓ Style rules updated." : "Example saved ✓ Style rules updated.");
+  } catch (error) {
+    setTrainStatus(error?.message || String(error), true);
+  } finally {
+    setTrainBusy(false);
+  }
+}
+
+// Ask the worker to update the style notes from the current examples. The
+// new notes arrive through `chrome.storage.onChanged` (see below).
+async function refreshStyle(doneMessage) {
+  $("summarizeStyle").disabled = true;
+  setTrainStatus("Updating your style rules…");
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "REFRESH_STYLE" });
+    if (!response?.ok) throw new Error(response?.error || "Could not update your style rules.");
+    setTrainStatus(doneMessage);
+  } catch (error) {
+    setTrainStatus(error?.message || String(error), true);
+  } finally {
+    $("summarizeStyle").disabled = false;
+  }
+}
+
+function editExample(id) {
+  const example = examples.find((candidate) => candidate.id === id);
+  if (!example) return;
+  editingId = id;
+  currentSample = example.sample || "";
+  $("trainPlatform").value = example.platform === "linkedin" ? "linkedin" : "x";
+  $("trainPost").value = example.post;
+  $("trainReply").value = example.reply;
+  $("trainSave").textContent = "Update example";
+  $("trainCancel").classList.remove("hidden");
+  setTrainStatus("");
+  renderExamples();
+  $("trainReply").focus();
+}
+
+async function deleteExample(id) {
+  examples = examples.filter((example) => example.id !== id);
+  if (editingId === id) resetTrainForm();
+  try {
+    await saveExamples(examples);
+    renderExamples();
+    refreshStyle("Example deleted. Style rules updated.");
+  } catch (error) {
+    setTrainStatus(error?.message || String(error), true);
+    renderExamples();
+  }
+}
+
 (async () => {
   try {
     settings = await loadSettings();
+    examples = await loadExamples();
+    renderExamples();
     fillTones();
     render();
 
@@ -158,6 +344,30 @@ async function test() {
     });
     $("save").addEventListener("click", save);
     $("test").addEventListener("click", test);
+
+    $("trainGenerate").addEventListener("click", generateSample);
+    $("trainSave").addEventListener("click", saveExample);
+    $("summarizeStyle").addEventListener("click", () => refreshStyle("Style rules updated ✓"));
+
+    // Style notes and examples also change from X (edits captured there) and
+    // from the worker; keep this page in sync so Save never writes stale notes.
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local") return;
+      if (changes.settings) {
+        const notes = changes.settings.newValue?.styleNotes || "";
+        settings.styleNotes = notes;
+        $("styleNotes").value = notes;
+      }
+      if (changes.examples && editingId === null) {
+        examples = Array.isArray(changes.examples.newValue) ? changes.examples.newValue : [];
+        renderExamples();
+      }
+    });
+    $("trainCancel").addEventListener("click", () => {
+      resetTrainForm();
+      setTrainStatus("");
+      renderExamples();
+    });
   } catch (error) {
     setStatus(`Could not load settings: ${error?.message || String(error)}`, true);
   }

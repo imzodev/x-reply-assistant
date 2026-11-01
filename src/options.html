@@ -143,6 +143,38 @@
     }
 
     details { margin-top: 14px; }
+
+    /* Train your voice */
+    .train-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .train-actions button { padding: 6px 12px; font-size: 13px; }
+    #trainStatus { font-size: 12px; margin-top: 6px; min-height: 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .example-list { list-style: none; padding: 0; margin: 8px 0 0; }
+    .example {
+      border: 1px solid #8886;
+      border-radius: 7px;
+      padding: 8px 9px;
+      margin-top: 6px;
+      font-size: 12px;
+    }
+    .example.editing { border-color: #7c3aed; }
+    .example-post { opacity: 0.68; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .example-reply { margin-top: 3px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .example-meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+    .example-meta .badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1px 6px;
+      border-radius: 9999px;
+      background: #7c3aed1f;
+      color: #7c3aed;
+    }
+    .example-meta button { padding: 2px 10px; font-size: 12px; margin-left: auto; }
+    .example-meta button + button { margin-left: 0; }
+    @media (prefers-color-scheme: dark) {
+      .example-meta .badge { color: #c4b5fd; }
+    }
     summary { cursor: pointer; font-weight: 600; }
     .hidden { display: none; }
 
@@ -254,6 +286,45 @@
     Pre-draft replies for good targets while scrolling
   </label>
   <div class="hint">On X, posts scoring 60+ that stay on screen for a moment get a draft in the background, so it's ready when you click Reply. Uses one API call per pre-drafted post.</div>
+
+  <details id="trainSection">
+    <summary>Train your voice</summary>
+    <p class="hint" style="margin-top:8px">
+      When you edit a draft on X and post it, your version is saved here
+      automatically. You can also paste a post, generate a sample, and edit
+      it until it sounds like you. Saved replies are shown to the model as
+      examples of how you write.
+    </p>
+
+    <label for="trainPlatform">Platform</label>
+    <select id="trainPlatform">
+      <option value="x">X</option>
+      <option value="linkedin">LinkedIn</option>
+    </select>
+
+    <label for="trainPost">Post</label>
+    <textarea id="trainPost" maxlength="4000" placeholder="Paste the text of a post you'd reply to."></textarea>
+
+    <label for="trainReply">Your reply</label>
+    <textarea id="trainReply" maxlength="2000" placeholder="Generate a sample, or write your own reply."></textarea>
+
+    <div class="train-actions">
+      <button id="trainGenerate" class="secondary" type="button">Generate sample</button>
+      <button id="trainSave" type="button">Save example</button>
+      <button id="trainCancel" class="secondary hidden" type="button">Cancel edit</button>
+    </div>
+    <div id="trainStatus" role="status" aria-live="polite"></div>
+
+    <label for="styleNotes">Style notes</label>
+    <textarea id="styleNotes" maxlength="2000" rows="6" placeholder="Generated from your edits once you save an example, or write your own rules."></textarea>
+    <div class="hint">Rules about how you write, added to every prompt. They're updated automatically each time an example is saved, by comparing the AI drafts with your edits. You can edit them too (click Save below); the next update builds on your changes.</div>
+    <div class="train-actions">
+      <button id="summarizeStyle" class="secondary" type="button">Update style rules now</button>
+    </div>
+
+    <div class="hint" id="exampleCount"></div>
+    <ul class="example-list" id="exampleList"></ul>
+  </details>
 
   <details>
     <summary>Advanced</summary>

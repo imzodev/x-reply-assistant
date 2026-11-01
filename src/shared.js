@@ -89,6 +89,7 @@ export const DEFAULT_SETTINGS = {
   temperature: 0.9,
   analyzeImages: true,
   autoDraft: true,
+  styleNotes: "",
 };
 
 function mergeRecord(defaultValue, storedValue) {
@@ -115,4 +116,20 @@ export async function loadSettings() {
 
 export async function saveSettings(settings) {
   await chrome.storage.local.set({ settings });
+}
+
+// Training examples: posts with the reply the user would actually write.
+// Stored apart from `settings` so saving the settings form never touches
+// them. `sample` is the AI draft the reply was edited from (not sent to the
+// model; kept in case before/after pairs are useful later).
+export const MAX_EXAMPLES = 50;
+export const EXAMPLES_IN_PROMPT = 8;
+
+export async function loadExamples() {
+  const stored = await chrome.storage.local.get("examples");
+  return Array.isArray(stored.examples) ? stored.examples : [];
+}
+
+export async function saveExamples(examples) {
+  await chrome.storage.local.set({ examples: examples.slice(0, MAX_EXAMPLES) });
 }

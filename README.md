@@ -50,6 +50,12 @@ Posts with a purple score chip (60+) that stay on screen for about a second are 
 
 The Advanced section allows a custom model and HTTPS base URL for another OpenAI-compatible endpoint. Chrome may ask for permission for a custom endpoint. The API key is stored in `chrome.storage.local` and is sent to the configured provider by the extension service worker.
 
+## Train your voice
+
+When you edit a draft in X's reply box and post it, the post and your edited reply are saved as a training example automatically (unedited drafts are not saved). You can also add examples in the settings under **Train your voice**: paste a post, click **Generate sample**, edit the reply until it sounds like you, and save it. The 8 most recent saved replies for each platform are sent as earlier turns of the conversation (the post, then your reply), so the model continues in your voice. Examples can be edited or deleted from the same list.
+
+Every time an example is saved, changed, or deleted, the model compares each AI draft with the reply you actually wrote and updates a short list of rules about your style, shown as **Style notes** in the settings. The rules go into every prompt and override the tone setting. You can edit them; the next update builds on your changes.
+
 ## Images
 
 Most posts only make sense with their images, so the extension reads up to four images per post (toggle **Analyze post images** in the settings):

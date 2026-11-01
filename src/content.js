@@ -265,6 +265,7 @@ async function handleGenerate(article, button, toneOverride) {
     await sleep(120);
     const editor = findCurrentEditor(originalEditor);
     await insertIntoEditor(editor, text);
+    trackDraft(editor, article, text);
     injectRegenerateButton(editor, article, toneOverride);
     toast("Reply drafted ✨ — review it, then press Reply.", false);
   } catch (error) {
@@ -291,6 +292,7 @@ function injectRegenerateButton(editor, article, toneOverride) {
   // regen button in the wrong place.
   const replyButton = findComposerReplyButton(editor);
   if (!replyButton) return;
+  watchSubmit(editor, replyButton);
 
   wrapWithRegenerateButton(replyButton, (button) =>
     regenerateReply({ article, editor, button, toneOverride }),
@@ -367,10 +369,56 @@ async function regenerateReply({ article, editor, button, toneOverride }) {
     }
 
     await insertIntoEditor(editor, text);
+    trackDraft(editor, article, text);
   } catch (error) {
     toast(error?.message || String(error));
   } finally {
     setBusy(button, false, originalHtml);
+  }
+}
+
+/* ---------- learning from edits ---------- */
+
+// When the user edits a draft and then posts it, the post, the AI draft, and
+// the posted text are saved as a training example (see "Train your voice" in
+// the settings). Unedited drafts are not saved: they only show the AI's style.
+
+const trackedDrafts = new WeakMap(); // editor -> { post, sample }
+
+function trackDraft(editor, article, text) {
+  const tweet = extractTweet(article);
+  const post = tweet.text || tweet.quoted;
+  if (post) trackedDrafts.set(editor, { post, sample: text });
+}
+
+function captureEdit(editor) {
+  const draft = trackedDrafts.get(editor);
+  if (!draft) return;
+  trackedDrafts.delete(editor);
+
+  const reply = (editor.innerText || editor.textContent || "").replace(/\u200b/g, "").trim();
+  if (!reply || normalizedText(reply) === normalizedText(draft.sample)) return;
+
+  chrome.runtime
+    .sendMessage({ type: "SAVE_EXAMPLE", platform: "x", post: draft.post, sample: draft.sample, reply })
+    .then((response) => {
+      if (response?.ok) toast("Saved your edit ✍️ Updating your style rules…", false);
+    })
+    .catch((error) => console.warn("[X Reply Assistant]", error));
+}
+
+// Read the editor before X clears it: capture-phase listeners on the submit
+// button and on Ctrl/Cmd+Enter in the editor.
+function watchSubmit(editor, submitButton) {
+  if (submitButton.dataset.xraWatch !== "1") {
+    submitButton.dataset.xraWatch = "1";
+    submitButton.addEventListener("click", () => captureEdit(editor), true);
+  }
+  if (editor.dataset.xraWatch !== "1") {
+    editor.dataset.xraWatch = "1";
+    editor.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) captureEdit(editor);
+    }, true);
   }
 }
 
@@ -508,6 +556,7 @@ async function fillNativeReply(article, id) {
     // Leave the box alone if it was closed or the user started typing.
     if (!editor.isConnected || !isVisible(editor) || !editorTextEquals(editor, "")) return;
     await insertIntoEditor(editor, text);
+    trackDraft(editor, article, text);
     injectRegenerateButton(editor, article, null);
   } catch (error) {
     toast(error?.message || String(error));
